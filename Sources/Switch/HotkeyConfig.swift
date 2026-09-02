@@ -142,17 +142,8 @@ final class HotkeyConfig {
 
 /// Reserved combos we refuse to rebind onto (would break the system or the user's other shortcuts).
 enum HotkeyValidator {
-    private static let reserved: [(keyCode: UInt16, flags: CGEventFlags)] = [
-        (12, .maskCommand),  // ⌘Q
-        (13, .maskCommand),  // ⌘W
-        (1,  .maskCommand),  // ⌘S
-        (8,  .maskCommand),  // ⌘C
-        (9,  .maskCommand),  // ⌘V
-        (7,  .maskCommand),  // ⌘X
-        (6,  .maskCommand),  // ⌘Z
-        (15, .maskCommand),  // ⌘R
-        (3,  .maskCommand),  // ⌘F
-        (53, [])             // bare Esc
+    private static let reservedCommandChars: Set<String> = [
+        "Q", "W", "S", "C", "V", "X", "Z", "R", "F"
     ]
 
     /// Returns nil if the combo is allowed; otherwise a short human reason.
@@ -162,8 +153,14 @@ enum HotkeyValidator {
         if cleaned.intersection([.maskCommand, .maskAlternate, .maskControl]).rawValue == 0 {
             return "Needs at least one modifier (⌘, ⌥, or ⌃)."
         }
-        for (rk, rf) in reserved where rk == keyCode && rf == cleaned {
+        if keyCode == 53 && cleaned.isEmpty {
             return "That combo is reserved by macOS or common apps."
+        }
+        if cleaned == .maskCommand {
+            let charName = KeyName.string(for: keyCode).uppercased()
+            if reservedCommandChars.contains(charName) {
+                return "That combo is reserved by macOS or common apps."
+            }
         }
         return nil
     }

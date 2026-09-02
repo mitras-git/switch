@@ -72,10 +72,6 @@ final class HotkeyManager {
     private static let kcRightArrow: CGKeyCode = 124
     private static let kcDownArrow: CGKeyCode = 125
     private static let kcUpArrow: CGKeyCode = 126
-    private static let kcW: CGKeyCode = 13
-    private static let kcQ: CGKeyCode = 12
-    private static let kcH: CGKeyCode = 4
-    private static let kcComma: CGKeyCode = 43
     private static let kcDigits: [CGKeyCode] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
     private static let kcKeypadDigits: [CGKeyCode] = [83, 84, 85, 86, 87, 88, 89, 91, 92]
 
@@ -304,25 +300,26 @@ final class HotkeyManager {
                     }
                     return nil
                 }
-                if actionModifierMatches && kc == Self.kcW {
+                let char = baseCharacter(from: event)
+                if actionModifierMatches && char == "w" {
                     DispatchQueue.main.async { [weak self] in
                         self?.onCloseSelected?()
                     }
                     return nil
                 }
-                if actionModifierMatches && kc == Self.kcQ {
+                if actionModifierMatches && char == "q" {
                     DispatchQueue.main.async { [weak self] in
                         self?.onCloseSelectedApp?()
                     }
                     return nil
                 }
-                if actionModifierMatches && kc == Self.kcH {
+                if actionModifierMatches && char == "h" {
                     DispatchQueue.main.async { [weak self] in
                         self?.onHideSelected?()
                     }
                     return nil
                 }
-                if kc == Self.kcComma && (cmd || activeBinding?.modifiersHeld(flags) == true) {
+                if (char == "," || kc == 43 || kc == 46) && (cmd || activeBinding?.modifiersHeld(flags) == true) {
                     clearArmed()
                     DispatchQueue.main.async { [weak self] in
                         self?.onCancel?()
@@ -479,7 +476,18 @@ final class HotkeyManager {
         }
     }
 
-    // NSEvent character APIs hit TSM, which asserts main-queue on macOS 26.2+ and traps this thread.
+    // NSEvent character APIs hit TSM, which asserts main-queue on macOS and traps this thread.
+    private func baseCharacter(from event: CGEvent) -> Character? {
+        guard let copy = event.copy() else { return nil }
+        // Retain Command/Shift mask to enable Roman fallback on non-Latin layouts while respecting Latin layouts
+        copy.flags = copy.flags.intersection([.maskCommand, .maskShift])
+        var length = 0
+        var buffer = [UniChar](repeating: 0, count: 4)
+        copy.keyboardGetUnicodeString(maxStringLength: 4, actualStringLength: &length, unicodeString: &buffer)
+        guard length > 0, let c = String(utf16CodeUnits: buffer, count: length).first else { return nil }
+        return Character(c.lowercased())
+    }
+
     private func filterChar(from event: CGEvent) -> Character? {
         guard let copy = event.copy() else { return nil }
         copy.flags = copy.flags.intersection(.maskShift)
